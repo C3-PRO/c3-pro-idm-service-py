@@ -16,5 +16,6 @@ mongo_server = {
 # JWT
 jwt = {
 	'expiration_seconds': 3600,
+	'secret': 'super-duper-secret',
 }
 

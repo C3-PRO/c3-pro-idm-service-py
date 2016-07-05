@@ -4,7 +4,7 @@ import logging
 from datetime import timedelta
 
 from flask import Flask, request, jsonify
-from flask_jwt import JWT, jwt_required, current_identity
+from flask_jwt import JWT, jwt_required
 
 from py import user
 from py import jwt_auth
@@ -21,7 +21,7 @@ except Exception:
 
 # app setup
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'super-duper-secret'
+app.config['SECRET_KEY'] = settings.jwt['secret']
 app.config['JWT_EXPIRATION_DELTA'] = timedelta(seconds=int(settings.jwt['expiration_seconds']))
 jwt = JWT(app, jwt_auth.authenticate, jwt_auth.identity)
 
@@ -85,16 +85,11 @@ def patients():
 def patients_sssid(sssid):
 	pat = _patient_with_sssid(sssid)
 	if pat is not None:
-				
+		
 		# update
 		if 'PUT' == request.method:
 			try:
-				js = request.json
-				if 'sssid' in js and js['sssid'] != sssid:
-					raise Exception('SSSID cannot be changed')
-				pat.update_with(js)
-				pat.sssid = sssid
-				pat.store_to(mng_srv, mng_bkt)
+				pat.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
 			except Exception as e:
 				return _err(str(e))
 			return '', 204
