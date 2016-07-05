@@ -1,0 +1,3 @@
+[submodule "py/jsondocument"]
+	path = py/jsondocument
+	url = https://github.com/p2/py-jsondocument.git
