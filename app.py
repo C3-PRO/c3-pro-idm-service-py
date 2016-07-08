@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import json
 import logging
 from datetime import timedelta
+from bson import ObjectId
 
 from flask import Flask, request, jsonify
 from flask_jwt import JWT, jwt_required
@@ -19,10 +21,19 @@ except Exception:
 	import defaults as settings
 
 
+# JSON encoder that handles BSON
+class BSONEncoder(json.JSONEncoder):
+	def default(self, o):
+		if isinstance(o, ObjectId):
+			return str(o)
+		return json.JSONEncoder.default(self, o)
+
+
 # app setup
 app = Flask(__name__)
 app.config['SECRET_KEY'] = settings.jwt['secret']
 app.config['JWT_EXPIRATION_DELTA'] = timedelta(seconds=int(settings.jwt['expiration_seconds']))
+app.json_encoder = BSONEncoder
 jwt = JWT(app, jwt_auth.authenticate, jwt_auth.identity)
 
 mng_bkt = settings.mongo_server['bucket']
@@ -71,10 +82,11 @@ def patients():
 		
 		try:
 			pat = patient.Patient(js['sssid'], js)
+			del pat._id   # auto-creates UUID; we rely on Mongo
 			pat.store_to(mng_srv, mng_bkt)
 		except Exception as e:
 			return _err(str(e))
-		return '', 201
+		return jsonify({'data': pat.for_api()}), 201
 	
 	# list
 	rslt = patient.Patient.find_on({'type': 'patient'}, mng_srv, mng_bkt)
