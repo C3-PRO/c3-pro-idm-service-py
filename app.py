@@ -11,6 +11,7 @@ from flask_jwt import JWT, jwt_required
 from py import user
 from py import jwt_auth
 from py import subject
+from py import link
 from py.jsondocument import mongoserver
 
 # read settings
@@ -65,6 +66,9 @@ def index():
 	"""
 	return jsonify({'status': 'ready'})
 
+
+# MARK: - Subjects
+
 @app.route('/subject', methods=['GET', 'POST'])
 @app.route('/subject/', methods=['GET', 'POST'])
 @jwt_required()
@@ -100,21 +104,74 @@ def subject():
 @jwt_required()
 def subject_sssid(sssid):
 	subj = _subject_with_sssid(sssid)
-	if subj is not None:
+	if subj is None:
+		return _err('Not Found', status=404)
+	
+	# update
+	if 'PUT' == request.method:
+		try:
+			subj.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
+		except IDMException as e:
+			return _err(str(e), status=e.status_code)
+		except Exception as e:
+			return _err(str(e))
+		return '', 204
+	
+	# get
+	return jsonify({'data': subj.for_api()})
+
+
+# MARK: - Links
+
+@app.route('/link/<jti>/jwt')
+def link_jti_jwt(jti, methods=['GET']):
+	lnk = link.Link.find_jti_on(jti, mng_srv, mng_bkt)
+	if lnk is None:
+		return _err('Not Found', status=404)
+	try:
 		
-		# update
+		# update link
 		if 'PUT' == request.method:
-			try:
-				subj.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
-			except IDMException as e:
-				return _err(str(e), status=e.status_code)
-			except Exception as e:
-				return _err(str(e))
-			return '', 204
+			return 'Not implemented', 500
 		
-		# get
-		return jsonify({'data': subj.for_api()})
-	return _err('Not Found', 404)
+		# get JWT
+		return lnk.jwt()
+	
+	except IDMException as e:
+		return _err(str(e), status=e.status_code)
+	except Exception as e:
+		return _err(str(e))	
+
+@app.route('/link/<jti>', methods=['GET', 'PUT'])
+@jwt_required()
+def link_jti(jti):
+	lnk = link.Link.find_jti_on(jti, mng_srv, mng_bkt)
+	if lnk is None:
+		return _err('Not Found', status=404)
+	
+	# update link
+	if 'PUT' == request.method:
+		try:
+			lnk.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
+		except IDMException as e:
+			return _err(str(e), status=e.status_code)
+		except Exception as e:
+			return _err(str(e))
+		return 'Not implemented', 500
+	
+	# get
+	return jsonify({'data': lnk.for_api()})
+
+@app.route('/subject/<sssid>/links', methods=['GET', 'POST'])
+@jwt_required()
+def subject_sssid_link(sssid):
+	
+	# create a new link
+	if 'POST' == request.method:
+		pass
+	
+	# return all links for this SSSID
+	return 'Not implemented', 500
 
 
 # start the app
