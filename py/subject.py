@@ -4,13 +4,25 @@ from datetime import datetime
 from flask_jwt import current_identity
 
 from .jsondocument import jsondocument
+from .idmexception import IDMException
 
 
-class Patient(jsondocument.JSONDocument):
+class Subject(jsondocument.JSONDocument):
 	
-	def __init__(self, sssid, json=None):
+	def __init__(self, sssid, js=None):
 		self.sssid = sssid
-		super().__init__(None, 'patient', json)
+		super().__init__(None, 'subject', js)
+	
+	
+	# MARK: - Validation
+	
+	@classmethod
+	def validate_json(cls, js):
+		if js is None:
+			raise Exception("No JSON provided")
+		for key in ['sssid', 'name', 'bday']:
+			if key not in js:
+				raise Exception("JSON is missing the `{}` element".format(key))
 	
 	
 	# MARK: - CRUD
@@ -19,8 +31,9 @@ class Patient(jsondocument.JSONDocument):
 		""" Takes data sent via the web and updates the receiver. Will check
 		if self.status changes and use it as audit action.
 		"""
-		if 'sssid' in js and js['sssid'] != self.sssid:
-			raise Exception('SSSID cannot be changed')
+		self.__class__.validate_json(js)
+		if js['sssid'] != self.sssid:
+			raise IDMException('SSSID cannot be changed', 409)
 		
 		statuschange = None
 		if 'status' in js and js['status'] != self.status:
@@ -31,7 +44,7 @@ class Patient(jsondocument.JSONDocument):
 	
 	def store_to(self, server, bucket=None, action=None):
 		""" Override to simultaneously store an "audit" document when storing
-		patient documents.
+		subject documents.
 		"""
 		now = int(datetime.timestamp(datetime.utcnow()))
 		actor = current_identity.id if current_identity is not None else None
@@ -53,4 +66,4 @@ class Patient(jsondocument.JSONDocument):
 	def find_sssid_on(cls, sssid, server, bucket=None):
 		if not sssid:
 			return None
-		return cls.find_on({'type': 'patient', 'sssid': sssid}, server, bucket)
+		return cls.find_on({'type': 'subject', 'sssid': sssid}, server, bucket)

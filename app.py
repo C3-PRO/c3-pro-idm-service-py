@@ -10,7 +10,7 @@ from flask_jwt import JWT, jwt_required
 
 from py import user
 from py import jwt_auth
-from py import patient
+from py import subject
 from py.jsondocument import mongoserver
 
 # read settings
@@ -48,12 +48,12 @@ mng_srv = mongoserver.MongoServer(
 def _err(message, status=400):
 	return jsonify({'error': {'status': status, 'message': message}}), status
 
-def _patient_with_sssid(sssid):
-	rslt = patient.Patient.find_sssid_on(sssid, mng_srv, mng_bkt)
+def _subject_with_sssid(sssid):
+	rslt = subject.Subject.find_sssid_on(sssid, mng_srv, mng_bkt)
 	if len(rslt) > 0:
 		pat = rslt[0]
 		if len(rslt) > 1:
-			logging.warn("there are {} patients with SSSID {}".format(len(rslt), sssid))
+			logging.warn("there are {} subjects with SSSID {}".format(len(rslt), sssid))
 		return pat
 	return None
 
@@ -65,49 +65,55 @@ def index():
 	"""
 	return jsonify({'status': 'ready'})
 
-@app.route('/patients', methods=['GET', 'POST'])
-@app.route('/patients/', methods=['GET', 'POST'])
+@app.route('/subject', methods=['GET', 'POST'])
+@app.route('/subject/', methods=['GET', 'POST'])
 @jwt_required()
-def patients():
+def subject():
+	
+	# create (fails if SSSID already exists)
 	if 'POST' == request.method:
 		js = request.json
 		#return jsonify({'you': 'posted', 'data': js})
-		if not js or not 'name' in js or not 'sssid' in js:
-			return _err('must at least provide `sssid` and `name`')
+		if not js or not 'sssid' in js:
+			return _err('must at least provide `sssid`')
 		
-		# create (unless SSSID already exists)
-		pat = _patient_with_sssid(js['sssid'])
-		if pat is not None:
+		subj = _subject_with_sssid(js['sssid'])
+		if subj is not None:
 			return _err('this SSSID is already taken', 409)
 		
 		try:
-			pat = patient.Patient(js['sssid'], js)
-			del pat._id   # auto-creates UUID; we rely on Mongo
-			pat.store_to(mng_srv, mng_bkt)
+			subject.Subject.validate_json(js)
+			subj = subject.Subject(js['sssid'], js)
+			del subj._id   # auto-creates UUID; we rely on Mongo
+			subj.store_to(mng_srv, mng_bkt)
+		except IDMException as e:
+			return _err(str(e), status=e.status_code)
 		except Exception as e:
 			return _err(str(e))
-		return jsonify({'data': pat.for_api()}), 201
+		return jsonify({'data': subj.for_api()}), 201
 	
 	# list
-	rslt = patient.Patient.find_on({'type': 'patient'}, mng_srv, mng_bkt)
+	rslt = subject.Subject.find_on({'type': 'subject'}, mng_srv, mng_bkt)
 	return jsonify({'data': [p.for_api() for p in rslt]})
 
-@app.route('/patients/<sssid>', methods=['GET', 'PUT'])
+@app.route('/subject/<sssid>', methods=['GET', 'PUT'])
 @jwt_required()
-def patients_sssid(sssid):
-	pat = _patient_with_sssid(sssid)
-	if pat is not None:
+def subject_sssid(sssid):
+	subj = _subject_with_sssid(sssid)
+	if subj is not None:
 		
 		# update
 		if 'PUT' == request.method:
 			try:
-				pat.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
+				subj.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
+			except IDMException as e:
+				return _err(str(e), status=e.status_code)
 			except Exception as e:
 				return _err(str(e))
 			return '', 204
 		
 		# get
-		return jsonify({'data': pat.for_api()})
+		return jsonify({'data': subj.for_api()})
 	return _err('Not Found', 404)
 
 

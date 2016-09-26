@@ -1,7 +1,7 @@
 C3-PRO IDM Service (Python)
 ===========================
 
-This is a Python-Flask and MongoDB-based backend service for the IDM frontend services.
+This is a Python-Flask and MongoDB-based backend service for the **C3-PRO IDM frontend services**, adhering to the [IDM API spec](http://docs.c3proidm.apiary.io).
 The server maintains its own user database and uses [JWT](http://jwt.io) (via [Flask-JWT](https://pythonhosted.org/Flask-JWT/)) for authorization.
 
 
@@ -33,6 +33,8 @@ Content-Type: application/json
 Installation
 ------------
 
+TODO.
+
 
 Starting the Server
 -------------------
@@ -42,13 +44,15 @@ All default settings reside in `defaults.py` and this file is used if there is n
 It's best if you create `settings.py` at the root directory yourself, `import defaults` at the top and then override whatever setting you want to customize.
 By default the server runs on port `9096`.
 
-In production it's best to let _gunicorn_ take care of launching the web app:
+In production it's best to let _gunicorn_ take care of launching the web app.
+The following will run the app on 2 worker threads on port `9096`:
 
 ```bash
+gunicorn -w 2 app:app -b 0.0.0.0:9096
 ```
 
 During development you can use:
 
 ```bash
-$ python app.py
+python app.py
 ```
