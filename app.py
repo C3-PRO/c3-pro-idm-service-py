@@ -46,8 +46,17 @@ mng_srv = mongoserver.MongoServer(
 	user=settings.mongo_server['user'],
 	pw=settings.mongo_server['password'])
 
-def _err(message, status=400):
-	return jsonify({'error': {'status': status, 'message': message}}), status
+def _err(message, status=400, headers=None):
+	body = jsonify({'error': {'status': status, 'message': message}})
+	return (body, status, headers) if headers is not None else (body, status)
+
+@app.errorhandler(404)
+def _not_found(error):
+	return _err(error.name, status=error.code)
+
+@jwt.jwt_error_handler
+def _jwt_err(error):
+	return _err(error.error, status=error.status_code, headers=error.headers)
 
 def _subject_with_sssid(sssid):
 	rslt = subject.Subject.find_sssid_on(sssid, mng_srv, mng_bkt)
