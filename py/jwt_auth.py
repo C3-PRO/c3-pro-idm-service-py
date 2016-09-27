@@ -11,6 +11,8 @@ username_table = {u.username: u for u in users}
 
 
 def authenticate(username, password):
+	""" This function is called when making a request to the /auth endpoint.
+	"""
 	user = username_table.get(username, None)
 	if user and safe_str_cmp(user.password.encode('utf-8'), password.encode('utf-8')):
 		return user

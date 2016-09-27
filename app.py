@@ -12,6 +12,7 @@ from py import user
 from py import jwt_auth
 from py import subject
 from py import link
+from py.idmexception import IDMException
 from py.jsondocument import mongoserver
 
 # read settings
@@ -50,6 +51,11 @@ def _err(message, status=400, headers=None):
 	body = jsonify({'error': {'status': status, 'message': message}})
 	return (body, status, headers) if headers is not None else (body, status)
 
+def _exc(exception):
+	if isinstance(exception, IDMException):
+		return _err(str(exception), status=exception.status_code)
+	return _err(str(exception))
+
 @app.errorhandler(404)
 def _not_found(error):
 	return _err(error.name, status=error.code)
@@ -79,9 +85,8 @@ def index():
 # MARK: - Subjects
 
 @app.route('/subject', methods=['GET', 'POST'])
-@app.route('/subject/', methods=['GET', 'POST'])
 @jwt_required()
-def subject():
+def subject_ep():
 	
 	# create (fails if SSSID already exists)
 	if 'POST' == request.method:
@@ -99,10 +104,8 @@ def subject():
 			subj = subject.Subject(js['sssid'], js)
 			del subj._id   # auto-creates UUID; we rely on Mongo
 			subj.store_to(mng_srv, mng_bkt)
-		except IDMException as e:
-			return _err(str(e), status=e.status_code)
 		except Exception as e:
-			return _err(str(e))
+			return _exc(e)
 		return jsonify({'data': subj.for_api()}), 201
 	
 	# list
@@ -120,10 +123,8 @@ def subject_sssid(sssid):
 	if 'PUT' == request.method:
 		try:
 			subj.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
-		except IDMException as e:
-			return _err(str(e), status=e.status_code)
 		except Exception as e:
-			return _err(str(e))
+			return _exc(e)
 		return '', 204
 	
 	# get
@@ -144,12 +145,10 @@ def link_jti_jwt(jti, methods=['GET']):
 			return 'Not implemented', 500
 		
 		# get JWT
-		return lnk.jwt()
+		return lnk.jwt(mng_srv, bucket=mng_bkt)
 	
-	except IDMException as e:
-		return _err(str(e), status=e.status_code)
 	except Exception as e:
-		return _err(str(e))	
+		return _exc(e)
 
 @app.route('/link/<jti>', methods=['GET', 'PUT'])
 @jwt_required()
@@ -162,10 +161,8 @@ def link_jti(jti):
 	if 'PUT' == request.method:
 		try:
 			lnk.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
-		except IDMException as e:
-			return _err(str(e), status=e.status_code)
 		except Exception as e:
-			return _err(str(e))
+			return _exc(e)
 		return 'Not implemented', 500
 	
 	# get
@@ -174,10 +171,24 @@ def link_jti(jti):
 @app.route('/subject/<sssid>/links', methods=['GET', 'POST'])
 @jwt_required()
 def subject_sssid_link(sssid):
-	
+	subj = _subject_with_sssid(sssid)
+	if subj is None:
+		return _err('Not Found', status=404)
+
 	# create a new link
 	if 'POST' == request.method:
-		pass
+		try:
+			lnk = link.Link(None, json={
+				'sub': sssid,
+				'iss': settings.jwt['iss'],
+				'aud': settings.jwt['aud'],
+				'secret': settings.jwt['secret'],
+				'algorithm': settings.jwt['algorithm']})
+			del lnk._id   # auto-creates UUID; we rely on Mongo
+			lnk.store_to(mng_srv, mng_bkt)
+		except Exception as e:
+			return _exc(e)
+		return jsonify({'data': lnk.for_api()}), 201
 	
 	# return all links for this SSSID
 	return 'Not implemented', 500

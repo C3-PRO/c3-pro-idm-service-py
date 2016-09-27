@@ -9,9 +9,9 @@ from .idmexception import IDMException
 
 class Subject(jsondocument.JSONDocument):
 	
-	def __init__(self, sssid, js=None):
+	def __init__(self, sssid, json=None):
 		self.sssid = sssid
-		super().__init__(None, 'subject', js)
+		super().__init__(None, 'subject', json)
 	
 	
 	# MARK: - Validation
@@ -23,6 +23,12 @@ class Subject(jsondocument.JSONDocument):
 		for key in ['sssid', 'name', 'bday']:
 			if key not in js:
 				raise Exception("JSON is missing the `{}` element".format(key))
+			if not js[key]:
+				raise Exception("The `{}` element is empty".format(key))
+		try:
+			datetime.strptime(js['bday'], '%Y-%m-%d')
+		except Exception as e:
+			raise Exception("The birth date \"{}\" is not properly formatted".format(js['bday']))
 	
 	
 	# MARK: - CRUD
@@ -34,6 +40,8 @@ class Subject(jsondocument.JSONDocument):
 		self.__class__.validate_json(js)
 		if js['sssid'] != self.sssid:
 			raise IDMException('SSSID cannot be changed', 409)
+		if 'type' in js:
+			del js['type']
 		
 		statuschange = None
 		if 'status' in js and js['status'] != self.status:
@@ -58,6 +66,9 @@ class Subject(jsondocument.JSONDocument):
 		super().store_to(server, bucket)
 		doc.update_with({'document': self.id})
 		doc.store_to(server, bucket)
+	
+	def for_api(self):
+		return super().for_api(omit=['_id', 'id'])
 	
 	
 	# MARK: - Search
