@@ -135,10 +135,10 @@ def subject_sssid(sssid):
 
 @app.route('/link/<jti>/jwt')
 def link_jti_jwt(jti, methods=['GET']):
-	lnk = link.Link.find_jti_on(jti, mng_srv, mng_bkt)
-	if lnk is None:
-		return _err('Not Found', status=404)
 	try:
+		lnk = link.Link.find_jti_on(jti, mng_srv, mng_bkt)
+		if lnk is None:
+			return _err('Not Found', status=404)
 		
 		# update link
 		if 'PUT' == request.method:
@@ -191,7 +191,8 @@ def subject_sssid_link(sssid):
 		return jsonify({'data': lnk.for_api()}), 201
 	
 	# return all links for this SSSID
-	return 'Not implemented', 500
+	rslt = link.Link.find_on({'type': 'link'}, mng_srv, mng_bkt)
+	return jsonify({'data': [l.for_api() for l in rslt]})
 
 
 # start the app
