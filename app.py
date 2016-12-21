@@ -87,53 +87,61 @@ def index():
 @app.route('/subject', methods=['GET', 'POST'])
 @jwt_required()
 def subject_ep():
-	
-	# create (fails if SSSID already exists)
-	if 'POST' == request.method:
-		js = request.json
-		#return jsonify({'you': 'posted', 'data': js})
-		if not js or not 'sssid' in js:
-			return _err('must at least provide `sssid`')
-		
-		subj = _subject_with_sssid(js['sssid'])
-		if subj is not None:
-			return _err('this SSSID is already taken', 409)
-		
-		try:
+	try:
+		# create (fails if SSSID already exists)
+		if 'POST' == request.method:
+			js = request.json
+			#return jsonify({'you': 'posted', 'data': js})
+			if not js or not 'sssid' in js:
+				return _err('must at least provide `sssid`')
+			
+			subj = _subject_with_sssid(js['sssid'])
+			if subj is not None:
+				return _err('this SSSID is already taken', 409)
+			
 			subject.Subject.validate_json(js)
 			subj = subject.Subject(js['sssid'], js)
 			del subj._id   # auto-creates UUID; we rely on Mongo
 			subj.store_to(mng_srv, mng_bkt)
-		except Exception as e:
-			return _exc(e)
-		return jsonify({'data': subj.for_api()}), 201
-	
-	# list
-	rslt = subject.Subject.find_on({'type': 'subject'}, mng_srv, mng_bkt)
-	return jsonify({'data': [p.for_api() for p in rslt]})
+			return jsonify({'data': subj.for_api()}), 201
+		
+		# list
+		rslt = subject.Subject.find_on({'type': 'subject'}, mng_srv, mng_bkt)
+		return jsonify({'data': [p.for_api() for p in rslt]})
+	except Exception as e:
+		return _exc(e)
 
 @app.route('/subject/<sssid>', methods=['GET', 'PUT'])
 @jwt_required()
 def subject_sssid(sssid):
-	subj = _subject_with_sssid(sssid)
-	if subj is None:
-		return _err('Not Found', status=404)
-	
-	# update
-	if 'PUT' == request.method:
-		try:
+	try:
+		subj = _subject_with_sssid(sssid)
+		if subj is None:
+			return _err('Not Found', status=404)
+		
+		# update subject
+		if 'PUT' == request.method:
 			subj.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
-		except Exception as e:
-			return _exc(e)
-		return '', 204
-	
-	# get
-	return jsonify({'data': subj.for_api()})
+			return '', 204
+		
+		# get subject
+		return jsonify({'data': subj.for_api()})
+	except Exception as e:
+		return _exc(e)
 
 @app.route('/subject/<sssid>/didConsent', methods=['PUT'])
 @jwt_required()
 def subject_sssid_didconsent(sssid):
-	return _err('not implemented', 500)
+	try:
+		subj = _subject_with_sssid(sssid)
+		if subj is None:
+			return _err('Not Found', status=404)
+		
+		# set date_consented to now
+		subj.mark_consented(mng_srv, mng_bkt)
+		return jsonify({'data': subj.for_api()})
+	except Exception as e:
+		return _exc(e)
 
 
 # MARK: - Links
@@ -158,43 +166,43 @@ def link_jti_jwt(jti, methods=['GET']):
 @app.route('/link/<jti>', methods=['GET', 'PUT'])
 @jwt_required()
 def link_jti(jti):
-	lnk = link.Link.find_jti_on(jti, mng_srv, mng_bkt)
-	if lnk is None:
-		return _err('Not Found', status=404)
-	
-	# update link
-	if 'PUT' == request.method:
-		try:
+	try:
+		lnk = link.Link.find_jti_on(jti, mng_srv, mng_bkt)
+		if lnk is None:
+			return _err('Not Found', status=404)
+		
+		# update link
+		if 'PUT' == request.method:
 			lnk.safe_update_and_store_to(request.json, mng_srv, mng_bkt)
-		except Exception as e:
-			return _exc(e)
-		return 'Not implemented', 500
-	
-	# get
-	return jsonify({'data': lnk.for_api()})
+			return 'Not implemented', 500
+		
+		# get
+		return jsonify({'data': lnk.for_api()})
+	except Exception as e:
+		return _exc(e)
 
 @app.route('/subject/<sssid>/links', methods=['GET', 'POST'])
 @jwt_required()
 def subject_sssid_link(sssid):
-	subj = _subject_with_sssid(sssid)
-	if subj is None:
-		return _err('Not Found', status=404)
+	try:
+		subj = _subject_with_sssid(sssid)
+		if subj is None:
+			return _err('Not Found', status=404)
 
-	# create a new link
-	if 'POST' == request.method:
-		try:
+		# create a new link
+		if 'POST' == request.method:
 			lnk = subj.create_new_link(settings, mng_srv, mng_bkt)
-		except Exception as e:
-			return _exc(e)
-		return jsonify({'data': lnk.for_api()}), 201
-	
-	# return all links for this SSSID
-	rslt = link.Link.find_on({'type': 'link', 'sssid': sssid}, mng_srv, mng_bkt)
-	return jsonify({'data': [l.for_api() for l in rslt]})
+			return jsonify({'data': lnk.for_api()}), 201
+		
+		# return all links for this SSSID
+		rslt = link.Link.find_on({'type': 'link', 'sssid': sssid}, mng_srv, mng_bkt)
+		return jsonify({'data': [l.for_api() for l in rslt]})
+	except Exception as e:
+		return _exc(e)
 
 
 # start the app
 if '__main__' == __name__:
-	logging.basicConfig(level=logging.DEBUG)
+	logging.basicConfig(level=logging.INFO)
 	app.run(debug=True, port=9096)
 
