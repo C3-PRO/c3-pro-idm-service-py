@@ -45,7 +45,7 @@ class Subject(jsondocument.JSONDocument):
 			raise IDMException("Subject has already been consented", 409)
 		self.date_consented = arrow.utcnow().isoformat()
 		statuschange = 'date_consented: null -> {}'.format(self.date_consented)
-		#self.store_to(server, bucket, statuschange)
+		self.store_to(server, bucket, statuschange)
 	
 	def safe_update_and_store_to(self, js, server, bucket):
 		""" Takes data sent via the web and updates the receiver. Will check
