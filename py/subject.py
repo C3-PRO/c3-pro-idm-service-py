@@ -60,8 +60,8 @@ class Subject(jsondocument.JSONDocument):
 		changed = []
 		for d in ['invited', 'consented', 'enrolled', 'withdrawn']:
 			key = 'date_{}'.format(d)
-			if key in js and js[key] != self.__attr__(key):
-				changed.add('{}: {} -> {}'.format(key, self.__attr__(key), js[key]))
+			if key in js and js[key] != self.__getattr__(key):
+				changed.append('{}: {} -> {}'.format(key, self.__getattr__(key), js[key]))
 		statuschange = ';\n\t'.join(changed) if len(changed) > 0 else None
 		
 		self.update_with(js)
@@ -76,14 +76,14 @@ class Subject(jsondocument.JSONDocument):
 		:parameter action: The action that led to this store; will be used as
 		                   `action` in the audit log
 		"""
-		now = arrow.utcnow().isoformat()
+		now = arrow.utcnow().timestamp
+		self.changed = now
 		actor = current_identity.id if current_identity is not None else None
 		doc = jsondocument.JSONDocument(None, 'audit', {'actor': actor, 'datetime': now})
 		if self.created is None:
 			self.created = now
 			doc.update_with({'action': 'create'})
 		else:
-			self.changed = now
 			doc.update_with({'action': action or 'update'})
 		super().store_to(server, bucket)
 		doc.update_with({'document': self.id})

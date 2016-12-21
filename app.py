@@ -105,8 +105,15 @@ def subject_ep():
 			subj.store_to(mng_srv, mng_bkt)
 			return jsonify({'data': subj.for_api()}), 201
 		
-		# list
-		rslt = subject.Subject.find_on({'type': 'subject'}, mng_srv, mng_bkt)
+		# list subjects
+		search = request.args.get('search')
+		page = request.args.get('page')
+		limit = request.args.get('perpage')
+		skip = int(page) * int(limit) if page and limit else None
+		sort = request.args.get('ordercol')
+		order = request.args.get('orderdir')
+		desc = True if order and 'desc' == order.lower() else False
+		rslt = subject.Subject.find_on({'type': 'subject'}, mng_srv, mng_bkt, skip, int(limit), sort, desc)
 		return jsonify({'data': [p.for_api() for p in rslt]})
 	except Exception as e:
 		return _exc(e)
