@@ -130,6 +130,11 @@ def subject_sssid(sssid):
 	# get
 	return jsonify({'data': subj.for_api()})
 
+@app.route('/subject/<sssid>/didConsent', methods=['PUT'])
+@jwt_required()
+def subject_sssid_didconsent(sssid):
+	return _err('not implemented', 500)
+
 
 # MARK: - Links
 
@@ -178,20 +183,13 @@ def subject_sssid_link(sssid):
 	# create a new link
 	if 'POST' == request.method:
 		try:
-			lnk = link.Link(None, json={
-				'sub': sssid,
-				'iss': settings.jwt['iss'],
-				'aud': settings.jwt['aud'],
-				'secret': settings.jwt['secret'],
-				'algorithm': settings.jwt['algorithm']})
-			del lnk._id   # auto-creates UUID; we rely on Mongo
-			lnk.store_to(mng_srv, mng_bkt)
+			lnk = subj.create_new_link(settings, mng_srv, mng_bkt)
 		except Exception as e:
 			return _exc(e)
 		return jsonify({'data': lnk.for_api()}), 201
 	
 	# return all links for this SSSID
-	rslt = link.Link.find_on({'type': 'link'}, mng_srv, mng_bkt)
+	rslt = link.Link.find_on({'type': 'link', 'sssid': sssid}, mng_srv, mng_bkt)
 	return jsonify({'data': [l.for_api() for l in rslt]})
 
 
@@ -199,3 +197,4 @@ def subject_sssid_link(sssid):
 if '__main__' == __name__:
 	logging.basicConfig(level=logging.DEBUG)
 	app.run(debug=True, port=9096)
+

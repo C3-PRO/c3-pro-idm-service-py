@@ -35,7 +35,7 @@ class Subject(jsondocument.JSONDocument):
 	
 	def safe_update_and_store_to(self, js, server, bucket):
 		""" Takes data sent via the web and updates the receiver. Will check
-		if self.status changes and use it as audit action.
+		if dates change and use it as audit action.
 		"""
 		self.__class__.validate_json(js)
 		if js['sssid'] != self.sssid:
@@ -43,9 +43,12 @@ class Subject(jsondocument.JSONDocument):
 		if 'type' in js:
 			del js['type']
 		
-		statuschange = None
-		if 'status' in js and js['status'] != self.status:
-			statuschange = '{} -> {}'.format(self.status, js['status'])
+		changed = []
+		for d in ['invited', 'consented', 'enrolled', 'withdrawn']:
+			key = 'date_{}'.format(d)
+			if key in js and js[key] != self.__attr__(key):
+				changed.add('{}: {} -> {}'.format(key, self.__attr__(key), js[key]))
+		statuschange = ';\n\t'.join(changed) if len(changed) > 0 else None
 		
 		self.update_with(js)
 		self.store_to(server, bucket, statuschange)
@@ -78,3 +81,26 @@ class Subject(jsondocument.JSONDocument):
 		if not sssid:
 			return None
 		return cls.find_on({'type': 'subject', 'sssid': sssid}, server, bucket)
+	
+	
+	# MARK: - Links
+	
+	def create_new_link(self, settings, server, bucket=None):
+		""" Creates a link for the given subject. Will throw if the subject
+		has not yet been consented.
+		"""
+		if not self.sssid:
+			raise IDMException('Subject has no SSSID', 500)
+		if not self.date_consented:
+			raise IDMException('Subject has not been consented', 412)
+		
+		lnk = link.Link(None, json={
+			'sub': self.sssid,
+			'iss': settings.jwt['iss'],
+			'aud': settings.jwt['aud'],
+			'secret': settings.jwt['secret'],
+			'algorithm': settings.jwt['algorithm']})
+		del lnk._id   # auto-creates UUID; we rely on Mongo
+		lnk.store_to(server, bucket)
+		return lnk
+
