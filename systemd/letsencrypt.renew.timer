@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily letsencrypt renewal
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+# randomize on the minute
+RandomizedDelaySec=3600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

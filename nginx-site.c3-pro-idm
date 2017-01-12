@@ -1,0 +1,31 @@
+# Make SSL handshake performant
+ssl_session_cache   shared:SSL:10m;
+ssl_session_timeout 10m;
+
+# Configuration containing list of WSGI servers
+upstream app_servers {
+	server 127.0.0.1:9096;
+}
+
+# Configure our WSGI server
+server {
+	server_name.        idm.c-tracker.ch;
+
+	listen 80;
+	listen 443 default_server ssl;
+
+	# SSL (we use letsencrypt)
+	ssl_certificate     /etc/letsencrypt/live/www.c-tracker.ch/cert.pem;
+    ssl_certificate_key /etc/letsencrypt/live/www.c-tracker.ch/privkey.pem;
+    keepalive_timeout   70;
+
+	# Proxy connections to the application servers `app_servers`
+	location / {
+		proxy_pass         http://app_servers;
+		proxy_redirect     off;
+		proxy_set_header   Host $host;
+		proxy_set_header   X-Real-IP $remote_addr;
+		proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header   X-Forwarded-Host $server_name;
+	}
+}

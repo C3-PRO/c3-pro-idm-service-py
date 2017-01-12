@@ -33,7 +33,11 @@ Content-Type: application/json
 Installation
 ------------
 
-TODO.
+Our Flask app is a _WSGI_ app for which we'll set up a _virtual environment_, which will be run by _gunicorn_ which in turn will be kept running by _supervisor_.
+
+Requests will be reverse proxied through _Nginx_.
+
+### See [DEPLOY.md](./DEPLOY.md).
 
 
 Starting the Server
@@ -45,10 +49,10 @@ It's best if you create `settings.py` at the root directory yourself, `import de
 By default the server runs on port `9096`.
 
 In production it's best to let _gunicorn_ take care of launching the web app.
-The following will run the app on 2 worker threads on port `9096`:
+The following will run the app on 5 worker threads (appropriate for a dual-core machine) on port `9096`:
 
 ```bash
-gunicorn -w 2 app:app -b 0.0.0.0:9096
+gunicorn -w 5 app:app -b 0.0.0.0:9096
 ```
 
 During development you can use:
