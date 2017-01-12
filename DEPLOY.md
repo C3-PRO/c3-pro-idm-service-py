@@ -23,8 +23,8 @@ We set up letsencrypt before starting nginx using a standalone cert server.
 These certs expire after 90 days, setup _systemd_ to auto-renew:
 
     cp {PATH_TO_REPO}/systemd/* /etc/systemd/system/
-    systemctl start renew-letsencrypt.timer
-    systemctl enable renew-letsencrypt.timer
+    systemctl start letsencrypt.renew.timer
+    systemctl enable letsencrypt.renew.timer
 
 
 ## Nginx
@@ -46,7 +46,7 @@ Requests will be reverse proxied through Nginx.
 Configure Mongo with systemd:
 
     # if not already done in the HTTPS step:
-    # ln -s {PATH_TO_REPO}/systemd/mongodb.service /etc/systemd/system/.
+    # cp {PATH_TO_REPO}/systemd/mongodb.service /etc/systemd/system/.
     systemctl start mongodb
     systemctl status mongodb
 
