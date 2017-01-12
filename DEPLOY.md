@@ -7,7 +7,7 @@ We'll assume a dualcore Ubuntu Linux 16.04 64 bit “Xenial” machine.
 SSH into your machine and clone this repo somewhere.
 We'll refer to this repo's location with `PATH_TO_REPO` below.
 
-All the config files have our domain name hardcoded (“c-tracker.ch”) and some commands below will also assume this domain.
+All the config files have a sample domain name hardcoded (“idm.domain.io”) and some commands below will also assume this domain.
 You will want to change those occurrences.
 
 
@@ -17,8 +17,7 @@ We set up letsencrypt before starting nginx using a standalone cert server.
 [See here](https://certbot.eff.org/#ubuntuxenial-nginx) for documentation.
 
     apt-get install letsencrypt
-    DOMAIN=c-tracker.ch
-    letsencrypt certonly --standalone -d www.$DOMAIN -d idm.$DOMAIN
+    letsencrypt certonly --standalone -d idm.domain.io
 
 These certs expire after 90 days, setup _systemd_ to auto-renew:
 
