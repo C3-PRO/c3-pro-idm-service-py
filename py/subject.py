@@ -11,25 +11,32 @@ class Subject(jsondocument.JSONDocument):
 	
 	def __init__(self, sssid, json=None):
 		self.sssid = sssid
+		if json is not None:
+			self.validate_json(json)
 		super().__init__(None, 'subject', json)
 	
 	
 	# MARK: - Validation
 	
-	@classmethod
-	def validate_json(cls, js):
+	def validate_json(self, js):
+		""" Validates the JSON to be used to populate the instance. Will check
+		for sssid, name, bday but WILL NOT COMPLAIN if the instance already has
+		these attributes.
+		"""
 		if js is None:
 			raise Exception("No JSON provided")
+		
+		# check for mandatory fields (unless the instance already has attr)
 		for key in ['sssid', 'name', 'bday']:
+			if getattr(self, key) is not None:
+				continue
 			if key not in js:
 				raise IDMException("JSON is missing the `{}` element".format(key))
 			if not js[key]:
 				raise IDMException("The `{}` element is empty".format(key))
-		try:
-			arrow.get(js['bday'])
-		except Exception as e:
-			raise IDMException("The birth date \"{}\" is not properly formatted".format(js['bday']))
-		for key in ['date_invited', 'date_consented', 'date_enrolled', 'date_withdrawn']:
+		
+		# validate dates provided
+		for key in ['bday', 'date_invited', 'date_consented', 'date_enrolled', 'date_withdrawn']:
 			if not key in js:
 				continue
 			try:
@@ -40,18 +47,11 @@ class Subject(jsondocument.JSONDocument):
 	
 	# MARK: - CRUD
 	
-	def mark_consented(self, server, bucket):
-		if self.date_consented:
-			raise IDMException("Subject has already been consented", 409)
-		self.date_consented = arrow.utcnow().isoformat()
-		statuschange = 'date_consented: null -> {}'.format(self.date_consented)
-		self.store_to(server, bucket, statuschange)
-	
 	def safe_update_and_store_to(self, js, server, bucket):
 		""" Takes data sent via the web and updates the receiver. Will check
 		if dates change and use it as audit action.
 		"""
-		self.__class__.validate_json(js)
+		self.validate_json(js)
 		if js['sssid'] != self.sssid:
 			raise IDMException("SSSID cannot be changed", 409)
 		if 'type' in js:
@@ -60,8 +60,11 @@ class Subject(jsondocument.JSONDocument):
 		changed = []
 		for d in ['invited', 'consented', 'enrolled', 'withdrawn']:
 			key = 'date_{}'.format(d)
-			if key in js and js[key] != self.__getattr__(key):
-				changed.append('{}: {} -> {}'.format(key, self.__getattr__(key), js[key]))
+			if key in js:
+				if getattr(self, key) is not None and js[key] != getattr(self, key):
+					raise IDMException("Subject has already been {}".format(d), 409)
+				if js[key] != getattr(self, key):
+					changed.append('{}: {} -> {}'.format(key, getattr(self, key), js[key]))
 		statuschange = ';\n\t'.join(changed) if len(changed) > 0 else None
 		
 		self.update_with(js)

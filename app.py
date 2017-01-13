@@ -99,7 +99,6 @@ def subject_ep():
 			if subj is not None:
 				return _err('this SSSID is already taken', 409)
 			
-			subject.Subject.validate_json(js)
 			subj = subject.Subject(js['sssid'], js)
 			del subj._id   # auto-creates UUID; we rely on Mongo
 			subj.store_to(mng_srv, mng_bkt)
@@ -132,20 +131,6 @@ def subject_sssid(sssid):
 			return '', 204
 		
 		# get subject
-		return jsonify({'data': subj.for_api()})
-	except Exception as e:
-		return _exc(e)
-
-@app.route('/subject/<sssid>/didConsent', methods=['PUT'])
-@jwt_required()
-def subject_sssid_didconsent(sssid):
-	try:
-		subj = _subject_with_sssid(sssid)
-		if subj is None:
-			return _err('Not Found', status=404)
-		
-		# set date_consented to now
-		subj.mark_consented(mng_srv, mng_bkt)
 		return jsonify({'data': subj.for_api()})
 	except Exception as e:
 		return _exc(e)

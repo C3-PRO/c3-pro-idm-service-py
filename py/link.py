@@ -23,8 +23,7 @@ class Link(jsondocument.JSONDocument):
 	
 	# MARK: - Validation
 	
-	@classmethod
-	def validate_json(cls, js):
+	def validate_json(self, js):
 		if js is None:
 			raise Exception("No JSON provided")
 	
@@ -34,7 +33,7 @@ class Link(jsondocument.JSONDocument):
 	def safe_update_and_store_to(self, js, server, bucket):
 		""" Takes data sent via the web and updates the receiver. Will audit.
 		"""
-		self.__class__.validate_json(js)
+		self.validate_json(js)
 		if self._jwt is not None:
 			for key in ['sub', 'iss', 'aud', 'exp', 'secret', 'algorithm']:
 				if key in js and js[key] != getattr(self, key):
