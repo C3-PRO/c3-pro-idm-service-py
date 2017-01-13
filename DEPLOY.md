@@ -60,7 +60,6 @@ Our Flask app is a WSGI app for which we'll set up a virtual environment, which 
     systemctl enable supervisor.service
     systemctl start supervisor
     supervisorctl reload
-    supervisorctl start c3-pro-idm
 
 After we set up the virtual environment for the IDM, we no longer need to be root:
 
