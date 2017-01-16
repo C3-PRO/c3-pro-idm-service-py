@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block head_title %}IDM Reset Password{% endblock %}
+
+{% block content %}
+	<h2>Reset Password</h2>
+	{%- if message %}<p>{{ message|capitalize }}</p>{% else %}
+	{%- if errormessage %}<p class="errormessage">{{ errormessage|capitalize }}</p>{% endif %}
+	<form action="reset" method="POST">
+		<p>Your new password must be at least {{ pass_min_len|default('8') }} characters long.</p>
+		<input type="hidden" name="key" value="{{ key }}">
+		<p><input type="password" name="pass1" placeholder="your new password"></p>
+		<p><input type="password" name="pass2" placeholder="repeat new password"></p>
+		<p>
+			<button type="submit">Set New Password</button>
+		</p>
+	</form>
+	<p>
+		<a href="iforgot">Back to I forgot</a>
+	</p>
+	{%- endif %}
+{% endblock %}

@@ -3,6 +3,9 @@
 # To override settings, create a file "settings.py", import this file, and
 # override whatever you need overridden.
 
+# Admin's email address - also used on password reset emails
+admin_email = 'webmaster@c3-pro-idm.org'
+
 # Mongo Server; leave host/port/db at None for default localhost connection
 mongo_server = {
 	'host': None,

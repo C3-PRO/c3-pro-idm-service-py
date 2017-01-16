@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>{% block head_title %}IDM{% endblock %}</title>
+		<style>
+		html, body {
+			margin: 0; padding: 0;
+			font-family: -apple-system, "HelveticaNeue-Thin", Roboto, "Helvetica Neue", Helvetica, Arial; line-height: 1.3;
+			background: rgb(238,238,238);
+		}
+		header {
+			height: 4em;
+			border-bottom: 0.75em solid #ffa416;
+			background: #333;
+		}
+		section {
+			padding: 3em 0 2em 0;
+			background: white;
+		}
+		section > div {
+			width: 400px; margin: 0 auto;
+		}
+		section input, section button {
+			font-size: 1em;
+		}
+		section input[type="text"], section input[type="password"] {
+			width: 97%;
+			padding: 0.3em 1%;
+			border: 1px solid #CCC; border-radius: 2pt;
+		}
+		footer {
+			min-height: 6em;
+			margin: 0; padding: 2em 0 4em;
+			font-size: 0.8em; text-align: center; line-height: 1.5;
+			border-top: 1px solid rgb(160,160,160);
+		}
+		footer > div {
+			display: flex;
+			max-width: 400px; margin: 0 auto;
+		}
+		footer > div > p {
+			flex: 1 1 auto; text-align: left;
+		}
+		a {
+			color: rgb(57,99,159); text-decoration: none;
+		}
+		a:hover {
+			color: #37c0fb; text-decoration: underline;
+		}
+		#c3pro {
+			width: 36px; height: 36px;
+		}
+		.errormessage {
+			color: firebrick;
+		}
+		</style>
+		{% block head %}{% endblock %}
+	</head>
+	<body>
+		<header></header>
+		<section>
+			<div>
+				{% block content %}{% endblock %}
+			</div>
+		</section>
+		<footer>
+			<div>
+				<p><a href="http://c3-pro.org" target="_blank"><img id="c3pro" src="data:image/png;base64,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" alt="C3-PRO"></a></p>
+				<p>Copyright © 2017<br>Boston Children's Hospital &amp; University Hospital Zurich</p>
+			</div>
+		</footer>
+	</body>
+</html>

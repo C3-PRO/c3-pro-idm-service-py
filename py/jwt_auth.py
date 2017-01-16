@@ -1,23 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from werkzeug.security import safe_str_cmp
-from . import user as usr
-
-users = [
-	usr.User('pascal.pfiffner@childrens.harvard.edu', 'test'),
-]
-
-username_table = {u.username: u for u in users}
+from . import user as user
 
 
 def authenticate(username, password):
 	""" This function is called when making a request to the /auth endpoint.
 	"""
-	user = username_table.get(username, None)
-	if user and safe_str_cmp(user.password.encode('utf-8'), password.encode('utf-8')):
-		return user
-	return None
+	try:
+		return user.User.with_pass(username, password, user.server, user.bucket)
+	except Exception as e:
+		return None
 
 def identity(payload):
-	user_id = payload['identity']
-	return username_table.get(user_id, None)
+	user_id = payload.get('identity')
+	return user.User.with_id(user_id, user.server, user.bucket)

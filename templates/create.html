@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block head_title %}Create IDM User{% endblock %}
+
+{% block content %}
+	<h2>Create User</h2>
+	{%- if message %}<p>{{ message|capitalize }}</p>{% endif %}
+	{%- if errormessage %}<p class="errormessage">{{ errormessage|capitalize }}</p>{% endif %}
+	<form action="/init" method="POST">
+		<p><input name="username" type="text" value="{{ username }}" placeholder="email address"></p>
+		<p><input name="password" type="password" placeholder="password"></p>
+		<p><input id="admin" type="checkbox" name="admin">&nbsp;<label for="admin">Administrator</label></p>
+		<p>
+			<button type="submit">Create</button>
+		</p>
+	</form>
+{% endblock %}

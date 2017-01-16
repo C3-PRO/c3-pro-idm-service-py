@@ -5,8 +5,8 @@ import logging
 from datetime import timedelta
 from bson import ObjectId
 
-from flask import Flask, request, jsonify
-from flask_jwt import JWT, jwt_required
+from flask import Flask, request, redirect, jsonify, render_template
+from flask_jwt import JWT, jwt_required, current_identity
 
 from py import user
 from py import jwt_auth
@@ -46,6 +46,9 @@ mng_srv = mongoserver.MongoServer(
 	bucket=mng_bkt,
 	user=settings.mongo_server['user'],
 	pw=settings.mongo_server['password'])
+
+user.server = mng_srv
+user.bucket = mng_bkt
 
 def _err(message, status=400, headers=None):
 	body = jsonify({'error': {'status': status, 'message': message}})
@@ -189,6 +192,86 @@ def subject_sssid_link(sssid):
 		# return all links for this SSSID
 		rslt = link.Link.find_on({'type': 'link', 'sssid': sssid}, mng_srv, mng_bkt)
 		return jsonify({'data': [l.for_api() for l in rslt]})
+	except Exception as e:
+		return _exc(e)
+
+
+# MARK: - Users
+
+@app.route('/iforgot', methods=['GET', 'POST'])
+def iforgot_ep():
+	msg = "If you have forgotten your password, provide your username below and we will send you an email with a link that allows you to set a new password."
+	errmsg = None
+	if 'POST' == request.method:
+		try:
+			name = request.form.get('username')
+			if not name:
+				raise IDMException("you must provide a username")
+			usr = user.User.get(name, mng_srv, bucket=mng_bkt)
+			hsh = usr.temporary_pass_hash(mng_srv, bucket=mng_bkt)
+			lnk = "{}/reset?k={}".format(request.url_root, hsh).replace('//', '/')
+			usr.email_temporary_pass(sender=settings.admin_email, link=lnk)
+			msg = "A password reset link has been sent to your email address. Follow the link in the email to set a new password."
+		except Exception as e:
+			errmsg = str(e)
+	return render_template('iforgot.html', message=msg, errormessage=errmsg)
+
+@app.route('/reset', methods=['GET', 'POST'])
+def reset_ep():
+	msg = None
+	errmsg = None
+	try:
+		if 'POST' == request.method:
+			key = request.form.get('key')
+			pass1 = request.form.get('pass1')
+			pass2 = request.form.get('pass2')
+			user.User.reset_password_for(key, pass1, pass2, mng_srv, bucket=mng_bkt)
+			msg = "your password has been set"
+		else:
+			key = request.args.get('k')
+			if not key:
+				raise IDMException("your password reset link seems to be broken, no reset key was detected. Please check your email and try again.")
+	except Exception as e:
+		errmsg = str(e)
+	return render_template('reset.html', key=key, message=msg, errormessage=errmsg)
+
+@app.route('/init', methods=['GET', 'POST'])
+def init_ep():
+	has_admins = user.User.has_admins(mng_srv, mng_bkt)
+	if not has_admins:
+		if 'POST' == request.method:
+			try:
+				name = request.form.get('username')
+				pw = request.form.get('password')
+				user.User.create(name, pw, request.form.get('admin'), mng_srv, mng_bkt)
+				has_admins = user.User.has_admins(mng_srv, mng_bkt)
+			except Exception as e:
+				return render_template('create.html', username=name, errormessage=str(e))
+		
+		if not has_admins:
+			return render_template('create.html', message="No admin users are present on the system, you can create one now:")
+	return render_template('done.html')
+
+@app.route('/user', methods=['POST'])
+@jwt_required()
+def user_ep():
+	try:
+		if not current_identity.admin:
+			raise IDMException("you do not have privileges to create a new user", 403)
+		name = request.json.get('username')
+		pw = request.json.get('password')
+		usr = user.User.create(name, pw, request.json.get('admin'), mng_srv, mng_bkt)
+		return jsonify({'data': usr.for_api()})
+	except Exception as e:
+		return _exc(e)
+
+@app.route('/user/<uid>', methods=['GET', 'PUT'])
+@jwt_required()
+def user_uid(uid):
+	try:
+		# TODO: implement PUT
+		usr = user.User.get(uid, mng_srv, mng_bkt)
+		return jsonify({'data': usr.for_api()})
 	except Exception as e:
 		return _exc(e)
 
