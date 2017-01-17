@@ -17,7 +17,6 @@ class User(jsondocument.JSONDocument):
 	def __init__(self, username, password=None, json=None):
 		self.username = username
 		self.password = None
-		self.temporary = None
 		self.admin = False
 		if password is not None:
 			self.set_password(password)
@@ -117,11 +116,8 @@ class User(jsondocument.JSONDocument):
 	def with_id(cls, user_id, server, bucket=None):
 		""" Raises if the user does not exist.
 		"""
-		if not isinstance(user_id, ObjectId):
-			try:
-				user_id = ObjectId(user_id)
-			except:
-				pass
+		if ObjectId.is_valid(user_id):
+			user_id = ObjectId(user_id)
 		res = cls.find_on({'type': 'user', '_id': user_id}, server, bucket)
 		if res and len(res) > 0:
 			return res[0]

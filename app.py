@@ -63,6 +63,10 @@ def _exc(exception):
 def _not_found(error):
 	return _err(error.name, status=error.code)
 
+@app.errorhandler(405)
+def _not_allowed(error):
+	return _err(error.name, status=error.code, headers={'Allow': ', '.join(error.valid_methods)})
+
 @jwt.jwt_error_handler
 def _jwt_err(error):
 	return _err(error.error, status=error.status_code, headers=error.headers)
@@ -141,19 +145,28 @@ def subject_sssid(sssid):
 
 # MARK: - Links
 
-@app.route('/link/<jti>/jwt')
-def link_jti_jwt(jti, methods=['GET']):
+@app.route('/link/<jti>/jwt', methods=['GET'])
+def link_jti_jwt(jti):
 	try:
 		lnk = link.Link.find_jti_on(jti, mng_srv, mng_bkt)
 		if lnk is None:
 			return _err('Not Found', status=404)
-		
-		# update link
-		if 'PUT' == request.method:
-			return 'Not implemented', 500
-		
-		# get JWT
 		return lnk.jwt(mng_srv, bucket=mng_bkt)
+	except Exception as e:
+		return _exc(e)
+
+@app.route('/establish', methods=['POST'])
+def establish_ep():
+	try:
+		auth = request.headers.get('Authorization')
+		if not auth:
+			raise IDMException('Unauthorized', 401)
+		auth_list = auth.split(' ')
+		if 2 != len(auth_list) or ('Bearer' != auth_list[0] and 'JWT' != auth_list[0]):
+			raise IDMException('only `Bearer` and `JWT` type authorization is acceptable', 406)
+		
+		link.Link.link_jwt_to_fhir_patient(auth_list[1], request.json, mng_srv, mng_bkt)
+		return '', 204
 	
 	except Exception as e:
 		return _exc(e)
