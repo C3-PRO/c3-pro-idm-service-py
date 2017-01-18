@@ -47,6 +47,29 @@ class Subject(jsondocument.JSONDocument):
 	
 	# MARK: - CRUD
 	
+	def populate_with_links(self, server, bucket):
+		links = Link.find_on({'type': 'link', 'sub': self.sssid}, server, bucket)
+		if links is not None:
+			for lnk in links:
+				
+				# link was cancelled: subject has withdrawn (use latest)
+				if lnk.withdrawn_on:
+					withdrawn = arrow.get(lnk.withdrawn_on)
+					if self.date_withdrawn is not None:
+						my_withdrawn = arrow.get(self.date_withdrawn)
+						self.date_withdrawn = withdrawn.isoformat() if withdrawn > my_withdrawn else self.date_withdrawn
+					else:
+						self.date_withdrawn = withdrawn.isoformat()
+				
+				# not withdrawn, but linked: subject is enrolled (use earliest)
+				elif lnk.linked_on:
+					rolled = arrow.get(lnk.linked_on)
+					if self.date_enrolled is not None:
+						my_rolled = arrow.get(self.date_enrolled)
+						self.date_enrolled = rolled.isoformat() if rolled < my_rolled else self.date_enrolled
+					else:
+						self.date_enrolled = rolled.isoformat()
+	
 	def safe_update_and_store_to(self, js, server, bucket):
 		""" Takes data sent via the web and updates the receiver. Will check
 		if dates change and use it as audit action.
@@ -104,6 +127,13 @@ class Subject(jsondocument.JSONDocument):
 			return None
 		return cls.find_on({'type': 'subject', 'sssid': sssid}, server, bucket)
 	
+	@classmethod
+	def find_on(cls, dic, server, bucket=None, skip=0, limit=50, sort=None, descending=False):
+		res = super().find_on(dic, server, bucket, skip, limit, sort, descending)
+		if res is not None:
+			for subj in res:
+				subj.populate_with_links(server, bucket)
+		return res
 	
 	# MARK: - Links
 	
