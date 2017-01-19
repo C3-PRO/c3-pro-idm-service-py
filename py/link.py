@@ -143,7 +143,7 @@ class Link(jsondocument.JSONDocument):
 		audit.store_to(server, bucket)
 	
 	def for_api(self):
-		return super().for_api(omit=['secret'])
+		return super().for_api(omit=['secret', '_jwt'])
 	
 	
 	# MARK: - Search
@@ -163,6 +163,13 @@ class Link(jsondocument.JSONDocument):
 			return None
 		rslt = cls.find_on({'type': 'link', '_jwt': bytes(jwt, encoding='utf-8')}, server, bucket)
 		return rslt[0] if len(rslt) > 0 else None
+	
+	@classmethod
+	def find_for_sssid_on(cls, sssid, server, bucket=None):
+		if not sssid:
+			return None
+		rslt = cls.find_on({'type': 'link', 'sub': sssid}, server, bucket)
+		return rslt if len(rslt) > 0 else None
 
 from .subject import Subject
 

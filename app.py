@@ -203,7 +203,7 @@ def subject_sssid_link(sssid):
 			return jsonify({'data': lnk.for_api()}), 201
 		
 		# return all links for this SSSID
-		rslt = link.Link.find_on({'type': 'link', 'sssid': sssid}, mng_srv, mng_bkt)
+		rslt = link.Link.find_for_sssid_on(sssid, mng_srv, mng_bkt)
 		return jsonify({'data': [l.for_api() for l in rslt]})
 	except Exception as e:
 		return _exc(e)
