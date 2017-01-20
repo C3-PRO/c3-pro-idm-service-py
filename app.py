@@ -130,7 +130,7 @@ def subject_sssid(sssid):
 	try:
 		subj = _subject_with_sssid(sssid)
 		if subj is None:
-			return _err('Not Found', status=404)
+			raise IDMException('Not Found', 404)
 		
 		# update subject
 		if 'PUT' == request.method:
@@ -204,7 +204,7 @@ def subject_sssid_link(sssid):
 		
 		# return all links for this SSSID
 		rslt = link.Link.find_for_sssid_on(sssid, mng_srv, mng_bkt)
-		return jsonify({'data': [l.for_api() for l in rslt]})
+		return jsonify({'data': [l.for_api() for l in rslt] if rslt is not None else None})
 	except Exception as e:
 		return _exc(e)
 
