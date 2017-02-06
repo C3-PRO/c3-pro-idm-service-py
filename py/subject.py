@@ -128,6 +128,17 @@ class Subject(jsondocument.JSONDocument):
 		return cls.find_on({'type': 'subject', 'sssid': sssid}, server, bucket)
 	
 	@classmethod
+	def search(cls, searchstring, server, bucket=None, skip=0, limit=50, sort=None, descending=False):
+		dic = {'type': 'subject'}
+		if searchstring:
+			dic['$or'] = [
+				{'sssid': {'$regex': '{}.*'.format(searchstring), '$options': 'i'}},
+				{'name': {'$regex': '.*{}.*'.format(searchstring), '$options': 'i'}},
+				{'bday': {'$regex': '{}.*'.format(searchstring)}},
+			]
+		return cls.find_on(dic, server, bucket=bucket, skip=skip, limit=limit, sort=sort, descending=descending)
+	
+	@classmethod
 	def find_on(cls, dic, server, bucket=None, skip=0, limit=50, sort=None, descending=False):
 		res = super().find_on(dic, server, bucket, skip, limit, sort, descending)
 		if res is not None:
