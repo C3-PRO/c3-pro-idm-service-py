@@ -113,13 +113,12 @@ def subject_ep():
 		
 		# list subjects
 		search = request.args.get('search')
-		page = request.args.get('page')
+		offset = request.args.get('offset')
 		limit = request.args.get('perpage')
-		skip = int(page) * int(limit) if page and limit else None
 		sort = request.args.get('ordercol')
 		order = request.args.get('orderdir')
 		desc = True if order and 'desc' == order.lower() else False
-		rslt = subject.Subject.find_on({'type': 'subject'}, mng_srv, mng_bkt, skip, int(limit), sort, desc)
+		rslt = subject.Subject.find_on({'type': 'subject'}, mng_srv, mng_bkt, int(offset), int(limit), sort, desc)
 		return jsonify({'data': [p.for_api() for p in rslt]})
 	except Exception as e:
 		return _exc(e)
