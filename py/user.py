@@ -107,6 +107,9 @@ class User(jsondocument.JSONDocument):
 	def get(cls, username, server, bucket=None):
 		""" Raises if the user does not exist.
 		"""
+		if not username:
+			raise IDMException("you must provide a username")
+		
 		res = cls.find_on({'type': 'user', 'username': username}, server, bucket)
 		if res and len(res) > 0:
 			return res[0]
@@ -154,6 +157,11 @@ class User(jsondocument.JSONDocument):
 		del usr._id
 		usr.store_to(server, bucket, action='create')
 		return usr
+	
+	@classmethod
+	def delete(cls, username, server, bucket=None):
+		usr = cls.get(username, server, bucket)
+		usr.remove_from(server, bucket)
 	
 	@classmethod
 	def has_admins(cls, server, bucket=None):

@@ -265,13 +265,18 @@ def init_ep():
 			return render_template('create.html', message="No admin users are present on the system, you can create one now:")
 	return render_template('done.html')
 
-@app.route('/user', methods=['POST'])
+@app.route('/user', methods=['POST', 'DELETE'])
 @jwt_required()
 def user_ep():
 	try:
 		if not current_identity.admin:
 			raise IDMException("you do not have privileges to create a new user", 403)
 		name = request.json.get('username')
+		
+		if 'DELETE' == request.method:
+			user.User.delete(name, mng_srv, mng_bkt)
+			return '', 204
+		
 		pw = request.json.get('password')
 		usr = user.User.create(name, pw, request.json.get('admin'), mng_srv, mng_bkt)
 		return jsonify({'data': usr.for_api()})
