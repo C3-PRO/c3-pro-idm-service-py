@@ -46,6 +46,7 @@ Configure Mongo with systemd:
 
     # if not already done in the HTTPS step:
     # cp {PATH_TO_REPO}/systemd/mongodb.service /etc/systemd/system/.
+    systemctl enable mongodb.service
     systemctl start mongodb
     systemctl status mongodb
 
