@@ -98,7 +98,7 @@ class User(jsondocument.JSONDocument):
 		doc.store_to(server, bucket)
 	
 	def for_api(self):
-		return super().for_api(omit=['_id', 'password'])
+		return super().for_api(omit=['_id', 'type', 'password'])
 
 	
 	# MARK: - Class Methods

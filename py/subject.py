@@ -116,7 +116,7 @@ class Subject(jsondocument.JSONDocument):
 		doc.store_to(server, bucket)
 	
 	def for_api(self):
-		return super().for_api(omit=['_id', 'id'])
+		return super().for_api(omit=['_id', 'type'])
 	
 	
 	# MARK: - Search
@@ -168,5 +168,4 @@ class Subject(jsondocument.JSONDocument):
 		return lnk
 
 from .link import Link
-
 

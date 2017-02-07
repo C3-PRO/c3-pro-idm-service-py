@@ -143,7 +143,7 @@ class Link(jsondocument.JSONDocument):
 		audit.store_to(server, bucket)
 	
 	def for_api(self):
-		return super().for_api(omit=['secret', '_jwt'])
+		return super().for_api(omit=['type', 'secret', '_jwt'])
 	
 	
 	# MARK: - Search
