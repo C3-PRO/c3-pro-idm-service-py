@@ -2,7 +2,6 @@
 
 import jwt
 import arrow
-from flask_jwt import current_identity
 from bson.objectid import ObjectId
 
 from .jsondocument import jsondocument
@@ -128,18 +127,16 @@ class Link(jsondocument.JSONDocument):
 		""" Override to simultaneously store an "audit" document when storing
 		link documents.
 		"""
-		now = arrow.utcnow().timestamp
-		actor = current_identity.id if current_identity else None
-		audit = jsondocument.JSONDocument(None, 'audit', {'actor': actor, 'epoch': now})
-		del audit._id
+		now = arrow.utcnow().isoformat()
 		if self.created is None:
 			self.created = now
-			audit.update_with({'action': 'create'})
+			action = 'create'
 		else:
 			self.changed = now
-			audit.update_with({'action': action or 'update'})
+			action = action or 'update'
 		super().store_to(server, bucket)
-		audit.update_with({'document': self.id})
+		
+		audit = Audit.audit_event_now(self.id, action)
 		audit.store_to(server, bucket)
 	
 	def for_api(self):
@@ -172,4 +169,5 @@ class Link(jsondocument.JSONDocument):
 		return rslt if len(rslt) > 0 else None
 
 from .subject import Subject
+from .audit import Audit
 

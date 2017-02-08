@@ -4,7 +4,6 @@ import uuid
 import arrow
 import bcrypt
 from bson import ObjectId
-from flask_jwt import current_identity
 
 from .jsondocument import jsondocument
 from .idmexception import IDMException
@@ -87,15 +86,10 @@ class User(jsondocument.JSONDocument):
 		:parameter action: The action that led to this store; will be used as
 		                   `action` in the audit log
 		"""
-		super().store_to(server, bucket)
+		super().store_to(server, bucket=bucket)
 		
-		now = arrow.utcnow().timestamp
-		actor = None
-		if current_identity:
-			actor = current_identity.id
-		doc = jsondocument.JSONDocument(None, 'audit', {'actor': actor, 'datetime': now, 'action': action or 'update', 'document': self.id})
-		del doc._id
-		doc.store_to(server, bucket)
+		audit = Audit.audit_event_now(self.id, action or 'update')
+		audit.store_to(server, bucket=bucket)
 	
 	def for_api(self):
 		return super().for_api(omit=['_id', 'type', 'password'])
@@ -169,4 +163,6 @@ class User(jsondocument.JSONDocument):
 		"""
 		res = cls.find_on({'type': 'user', 'admin': True}, server, bucket)
 		return True if res and len(res) > 0 else False
+
+from .audit import Audit
 

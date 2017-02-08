@@ -12,7 +12,6 @@ from py import user
 from py import jwt_auth
 from py import subject
 from py import link
-from py import audit
 from py.idmexception import IDMException
 from py.jsondocument import mongoserver
 
@@ -218,10 +217,10 @@ def subject_sssid_audits(sssid):
 		subj = _subject_with_sssid(sssid)
 		if subj is None:
 			return _err('Not Found', status=404)
-
-		# return all audits for this subject's document id
-		rslt = audit.Audit.find_for_doc_id_on(subj._id, mng_srv, mng_bkt)
-		return jsonify({'data': [l.for_api() for l in rslt] if rslt is not None else None})
+		
+		# return all audits for this subject
+		rslt = subj.all_audits(mng_srv, mng_bkt)
+		return jsonify({'data': [a.for_api() for a in rslt] if rslt is not None else None})
 	except Exception as e:
 		return _exc(e)
 

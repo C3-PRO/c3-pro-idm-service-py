@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import arrow
-from flask_jwt import current_identity
 
 from .jsondocument import jsondocument
 from .idmexception import IDMException
@@ -81,17 +80,19 @@ class Subject(jsondocument.JSONDocument):
 			del js['type']
 		
 		changed = []
-		for d in ['invited', 'consented', 'enrolled', 'withdrawn']:
-			key = 'date_{}'.format(d)
-			if key in js:
-				if getattr(self, key) is not None and js[key] != getattr(self, key):
-					raise IDMException("Subject has already been {}".format(d), 409)
-				if js[key] != getattr(self, key):
-					changed.append('{}: {} -> {}'.format(key, getattr(self, key), js[key]))
-		statuschange = ';\n\t'.join(changed) if len(changed) > 0 else None
+		for key in js:
+			existing = getattr(self, key)
+			if key[5:] in ['invited', 'consented', 'enrolled', 'withdrawn']:
+				if js[key] != existing:
+					if existing is not None:
+						raise IDMException("Subject has already been {}".format(key[5:]), 409)
+					changed.append('{}: {}'.format(key[5:], js[key]))
+			elif js[key] != existing:
+				changed.append('{}: \"{}\"'.format(key, js[key]))
+		statuschange = '; '.join(changed) if len(changed) > 0 else None
 		
 		self.update_with(js)
-		self.store_to(server, bucket, statuschange)
+		self.store_to(server, bucket=bucket, action=statuschange)
 	
 	def store_to(self, server, bucket=None, action=None):
 		""" Override to simultaneously store an "audit" document when storing
@@ -102,18 +103,17 @@ class Subject(jsondocument.JSONDocument):
 		:parameter action: The action that led to this store; will be used as
 		                   `action` in the audit log
 		"""
-		now = arrow.utcnow().timestamp
-		self.changed = now
-		actor = current_identity.id if current_identity is not None else None
-		doc = jsondocument.JSONDocument(None, 'audit', {'actor': actor, 'datetime': now})
+		now = arrow.utcnow().isoformat()
 		if self.created is None:
 			self.created = now
-			doc.update_with({'action': 'create'})
+			action = 'create'
 		else:
-			doc.update_with({'action': action or 'update'})
-		super().store_to(server, bucket)
-		doc.update_with({'document': self.id})
-		doc.store_to(server, bucket)
+			self.changed = now
+			action = action or 'update'
+		super().store_to(server, bucket=bucket)
+		
+		audit = Audit.audit_event_now(self.id, action)
+		audit.store_to(server, bucket=bucket)
 	
 	def for_api(self):
 		return super().for_api(omit=['_id', 'type'])
@@ -153,9 +153,9 @@ class Subject(jsondocument.JSONDocument):
 		has not yet been consented.
 		"""
 		if not self.sssid:
-			raise IDMException('Subject has no SSSID', 500)
+			raise IDMException("Subject has no SSSID", 500)
 		if not self.date_consented:
-			raise IDMException('Subject has not yet been consented', 412)
+			raise IDMException("Subject has not yet been consented", 412)
 		
 		lnk = Link(None, json={
 			'sub': self.sssid,
@@ -166,6 +166,35 @@ class Subject(jsondocument.JSONDocument):
 		del lnk._id   # auto-creates UUID; we rely on Mongo
 		lnk.store_to(server, bucket)
 		return lnk
+	
+	
+	# MARK: - Audits
+	
+	def all_audits(self, server, bucket=None):
+		""" Find all "audit" documents for this subject AND for all links
+		belonging to this subject.
+		
+		TODO: this should definitely be a view.
+		"""
+		audits = Audit.find_for_doc_id_on(self._id, server, bucket=bucket)
+		if audits is not None and len(audits) > 0:
+			[a.lookup_actor(server, bucket=bucket) for a in audits]
+		else:
+			audits = []
+		
+		links = Link.find_for_sssid_on(self.sssid, server, bucket=bucket)
+		if links is not None and len(links) > 0:
+			for link in links:
+				link_audits = Audit.find_for_doc_id_on(link._id, server, bucket=bucket)
+				if link_audits is not None and len(link_audits) > 0:
+					for a in link_audits:
+						a.action = "[Link] {}".format(a.action)
+						a.lookup_actor(server, bucket=bucket)
+					audits.extend(link_audits)
+		
+		audits.sort(key=lambda k: k.datetime or '1970-01-01')
+		return audits if len(audits) > 0 else None
 
 from .link import Link
+from .audit import Audit
 
