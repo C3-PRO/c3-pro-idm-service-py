@@ -64,7 +64,7 @@ class User(jsondocument.JSONDocument):
 	def reset_password_for(cls, pass_hash, pass1, pass2, server, bucket=None):
 		res = cls.find_on({'type': 'user', 'temporary.hash': pass_hash}, server, bucket)
 		if not res or 0 == len(res):
-			raise IDMException("your password reset link is invalid, please request a new one")
+			raise IDMException("your password reset link is invalid, please request a new one by clicking “I forgot”")
 		if not pass1 or len(pass1) < 8:
 			raise IDMException("your password is too short")
 		if not pass2 or pass1 != pass2:
@@ -72,7 +72,7 @@ class User(jsondocument.JSONDocument):
 		usr = res[0]
 		exp = usr.temporary.get('time')
 		if not exp or arrow.get(exp) < arrow.utcnow():
-			raise IDMException("your password reset link has expired, please request a new one")
+			raise IDMException("your password reset link has expired, please request a new one by clicking “I forgot”")
 		usr.set_password(pass1)
 		usr.store_to(server, bucket, action='reset password')
 	

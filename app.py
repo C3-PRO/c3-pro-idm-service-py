@@ -257,7 +257,7 @@ def subject_sssid_audits(sssid):
 
 @app.route('/iforgot', methods=['GET', 'POST'])
 def iforgot_ep():
-	msg = "If you have forgotten your password, provide your username below and we will send you an email with a link that allows you to set a new password."
+	msg_sent = False
 	errmsg = None
 	if 'POST' == request.method:
 		try:
@@ -269,10 +269,10 @@ def iforgot_ep():
 			lnk = "{}/reset?k={}".format(request.url_root, hsh)
 			lnk = re.sub(r'([^:]/)/+', '\\1', lnk)
 			usr.email_temporary_pass(mailer=mail, link=lnk)
-			msg = "A password reset link has been sent to your email address. Follow the link in the email to set a new password."
+			msg_sent = True
 		except Exception as e:
 			errmsg = str(e)
-	return render_template('iforgot.html', message=msg, errormessage=errmsg)
+	return render_template('iforgot.html', msg_sent=msg_sent, errormessage=errmsg)
 
 @app.route('/reset', methods=['GET', 'POST'])
 def reset_ep():
@@ -288,7 +288,7 @@ def reset_ep():
 		else:
 			key = request.args.get('k')
 			if not key:
-				raise IDMException("your password reset link seems to be broken, no reset key was detected. Please check your email and try again.")
+				raise IDMException("your password reset link seems to be broken, no reset key was detected. Please check your email and try again or request a new reset link by clicking “I forgot”.")
 	except Exception as e:
 		errmsg = str(e)
 	return render_template('reset.html', key=key, message=msg, errormessage=errmsg)

@@ -4,12 +4,21 @@
 
 {% block content %}
 	<h2>I Forgot my Password</h2>
-	{%- if message %}<p>{{ message|capitalize }}</p>{% endif %}
-	{%- if errormessage %}<p class="errormessage">{{ errormessage|capitalize }}</p>{% endif %}
+	{%- if errormessage %}<p class="errormessage">{{ errormessage[:1]|capitalize }}{{ errormessage[1:] }}</p>{% endif %}
+	{%- if msg_sent %}<p>
+		A password reset link has been sent to your email address. Follow the link in the email to set a new password.
+	</p>
+	<p>
+		You can close this window now or <a href="iforgot">go back</a>.
+	</p>
+	{%- else %}<p>
+		If you have forgotten your password, provide your username below and we will send you an email with a link that allows you to set a new password.
+	</p>
 	<form action="iforgot" method="POST">
 		<p><input name="username" type="text" value="{{ username|default('') }}" placeholder="your email address"></p>
 		<p>
 			<button type="submit">Send Link</button>
 		</p>
 	</form>
+	{%- endif %}
 {% endblock %}

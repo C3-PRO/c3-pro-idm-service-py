@@ -4,8 +4,8 @@
 
 {% block content %}
 	<h2>Reset Password</h2>
-	{%- if message %}<p>{{ message|capitalize }}</p>{% else %}
-	{%- if errormessage %}<p class="errormessage">{{ errormessage|capitalize }}</p>{% endif %}
+	{%- if message %}<p>{{ message[:1]|capitalize }}{{ message[1:] }}</p>{% else %}
+	{%- if errormessage %}<p class="errormessage">{{ errormessage[:1]|capitalize }}{{ errormessage[1:] }}</p>{% endif %}
 	<form action="reset" method="POST">
 		<p>Your new password must be at least {{ pass_min_len|default('8') }} characters long.</p>
 		<input type="hidden" name="key" value="{{ key }}">
@@ -16,7 +16,7 @@
 		</p>
 	</form>
 	<p>
-		<a href="iforgot">Back to I forgot</a>
+		<a href="iforgot">Back to “I forgot”</a>
 	</p>
 	{%- endif %}
 {% endblock %}
