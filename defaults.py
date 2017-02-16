@@ -25,3 +25,11 @@ jwt = {
 	'algorithm': 'HS256',
 }
 
+# Mailer settings; set server to "None" to not support
+mail = {
+	'server': 'smtp.gmail.com',
+	'port': 587,
+	'username': 'hello@gmail.com',
+	'password': 'o6k8b7ip-a',
+}
+

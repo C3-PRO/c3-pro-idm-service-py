@@ -56,10 +56,9 @@ class User(jsondocument.JSONDocument):
 		}
 		self.store_to(server, bucket, action='generate temporary password')
 	
-	def email_temporary_pass(self, sender, link):
+	def email_temporary_pass(self, mailer, link):
 		text = "Dear {},\n\nPlease click the link below to set a new password:\n{}\n\nYou can reply to this email if you keep having issues logging in.\n\nBest regards,\nyour friendly IDM machine".format(self.username, link)
-		raise IDMException(text)
-		# TODO: send email
+		mailer.send_mail(self.username, "C Tracker IDM Password Reset", text)
 	
 	@classmethod
 	def reset_password_for(cls, pass_hash, pass1, pass2, server, bucket=None):

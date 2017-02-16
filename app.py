@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import re
 import json
 import logging
 from datetime import timedelta
@@ -12,6 +13,7 @@ from py import user
 from py import jwt_auth
 from py import subject
 from py import link
+from py import mailer
 from py.idmexception import IDMException
 from py.jsondocument import mongoserver
 
@@ -50,6 +52,13 @@ mng_srv = mongoserver.MongoServer(
 user.server = mng_srv
 user.bucket = mng_bkt
 
+mail = mailer.Mailer(settings.mail.get('username'),
+	settings.mail.get('password'),
+	settings.mail.get('server'),
+	settings.mail.get('port'),
+	settings.admin_email)
+
+
 def _err(message, status=400, headers=None):
 	body = jsonify({'error': {'status': status, 'message': message}})
 	return (body, status, headers) if headers is not None else (body, status)
@@ -87,6 +96,25 @@ def index():
 	""" The service root.
 	"""
 	return jsonify({'status': 'ready'})
+
+@app.route('/status')
+def status():
+	msg_mail = 'ok'
+	try:
+		mail.connect()
+	except Exception as e:
+		msg_mail = str(e)
+	
+	msg_db = 'ok'
+	try:
+		user.User.has_admins(mng_srv, mng_bkt)
+	except Exception as e:
+		msg_db = str(e)
+		
+	return jsonify({'data': {
+		'mail': msg_mail,
+		'db': msg_db,
+	}})
 
 
 # MARK: - Subjects
@@ -238,8 +266,9 @@ def iforgot_ep():
 				raise IDMException("you must provide a username")
 			usr = user.User.get(name, mng_srv, bucket=mng_bkt)
 			hsh = usr.temporary_pass_hash(mng_srv, bucket=mng_bkt)
-			lnk = "{}/reset?k={}".format(request.url_root, hsh).replace('//', '/')
-			usr.email_temporary_pass(sender=settings.admin_email, link=lnk)
+			lnk = "{}/reset?k={}".format(request.url_root, hsh)
+			lnk = re.sub(r'([^:]/)/+', '\\1', lnk)
+			usr.email_temporary_pass(mailer=mail, link=lnk)
 			msg = "A password reset link has been sent to your email address. Follow the link in the email to set a new password."
 		except Exception as e:
 			errmsg = str(e)
