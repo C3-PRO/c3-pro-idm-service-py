@@ -39,7 +39,11 @@ class Subject(jsondocument.JSONDocument):
 			if not key in js:
 				continue
 			try:
-				arrow.get(js[key])   # TODO: this will allow anything arrow can parse, but should only be ISO date-time
+				validated = arrow.get(js[key])
+				if validated.year < 1900:
+					raise IDMException("Birth years before 1900 are not valid, you provided {}".format(validated.year))
+				if validated.year > 2100:
+					raise IDMException("Birth years after 2100 are not valid, you provided {}".format(validated.year))
 			except Exception as e:
 				raise IDMException("The date for {} \"{}\" is not properly formatted".format(key, js[key]))
 	
