@@ -196,7 +196,7 @@ class Subject(jsondocument.JSONDocument):
 						a.lookup_actor(server, bucket=bucket)
 					audits.extend(link_audits)
 		
-		audits.sort(key=lambda k: k.datetime or '1970-01-01')
+		audits.sort(key=lambda k: str(k.datetime) or '1970-01-01')
 		return audits if len(audits) > 0 else None
 
 from .link import Link
