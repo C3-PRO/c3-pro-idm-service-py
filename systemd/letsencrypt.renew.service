@@ -5,7 +5,7 @@ Description=Renew letsencrypt certificates
 Type=oneshot
 # check for renewal in standalone mode, start/stop nginx accordingly
 ExecStartPre=/bin/systemctl stop nginx
-ExecStart=/usr/bin/letsencrypt renew --standalone
+ExecStart=-/usr/bin/letsencrypt renew --standalone
 ExecStartPost=/bin/systemctl start nginx
 
 # TODO: newer versions of `certbot` are required for this, which only stops nginx if renewal is needed:
