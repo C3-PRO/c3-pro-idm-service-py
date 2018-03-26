@@ -112,8 +112,8 @@ class Subject(jsondocument.JSONDocument):
 			self.created = now
 			action = 'create'
 		else:
-			self.changed = now
 			action = action or 'update'
+		self.changed = now
 		super().store_to(server, bucket=bucket)
 		
 		audit = Audit.audit_event_now(self.id, action)
