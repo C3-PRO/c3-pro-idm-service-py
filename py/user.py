@@ -14,7 +14,7 @@ class User(jsondocument.JSONDocument):
 	bucket = None
 	
 	def __init__(self, username, password=None, json=None):
-		self.username = username
+		self.username = self.__class__._clean_username(username)
 		self.password = None
 		self.admin = False
 		if password is not None:
@@ -97,9 +97,14 @@ class User(jsondocument.JSONDocument):
 	# MARK: - Class Methods
 	
 	@classmethod
+	def _clean_username(cls, username):
+		return username.lower() if username else None
+	
+	@classmethod
 	def get(cls, username, server, bucket=None):
 		""" Raises if the user does not exist.
 		"""
+		username = cls._clean_username(username)
 		if not username:
 			raise IDMException("you must provide a username")
 		
@@ -125,6 +130,8 @@ class User(jsondocument.JSONDocument):
 		"""
 		if not password:
 			raise IDMException("no password given")
+		
+		username = cls._clean_username(username)
 		usr = cls.get(username, server, bucket)
 		hashed = usr.password
 		if hashed != bcrypt.hashpw(password.encode('utf-8'), hashed):
@@ -133,6 +140,7 @@ class User(jsondocument.JSONDocument):
 	
 	@classmethod
 	def create(cls, username, password, is_admin, server, bucket=None):
+		username = cls._clean_username(username)
 		if not username:
 			raise IDMException("you must provide a username")
 		if not password or len(password) < 8:
@@ -153,6 +161,7 @@ class User(jsondocument.JSONDocument):
 	
 	@classmethod
 	def delete(cls, username, server, bucket=None):
+		username = cls._clean_username(username)
 		usr = cls.get(username, server, bucket)
 		usr.remove_from(server, bucket)
 	

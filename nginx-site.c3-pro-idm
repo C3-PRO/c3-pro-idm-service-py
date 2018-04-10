@@ -9,7 +9,7 @@ server {
 	listen 443 ssl;
 
 	# SSL (we use letsencrypt)
-	ssl_certificate     /etc/letsencrypt/live/idm.domain.io/cert.pem;
+	ssl_certificate     /etc/letsencrypt/live/idm.domain.io/fullchain.pem;
 	ssl_certificate_key /etc/letsencrypt/live/idm.domain.io/privkey.pem;
 
 	# Proxy connections to `idm_servers`
