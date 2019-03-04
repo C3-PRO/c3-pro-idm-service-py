@@ -16,8 +16,14 @@ You will want to change those occurrences.
 We set up letsencrypt before starting nginx using a standalone cert server.
 [See here](https://certbot.eff.org/#ubuntuxenial-nginx) for documentation.
 
-    apt-get install letsencrypt
-    letsencrypt certonly --standalone -d idm.domain.io
+    apt-get apt-get update
+    apt-get install software-properties-common
+    add-apt-repository universe
+    add-apt-repository ppa:certbot/certbot
+    apt-get update
+    apt-get install certbot python-certbot-nginx
+    
+    certbot certonly --nginx -d idm.domain.io
 
 These certs expire after 90 days, setup _systemd_ to auto-renew:
 
